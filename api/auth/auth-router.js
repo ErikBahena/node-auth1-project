@@ -1,7 +1,6 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 
-const db = require("../../data/db-config");
 const UsersModel = require("../users/users-model");
 
 const {
@@ -15,22 +14,20 @@ router.post(
   checkPasswordLength,
   checkUsernameFree,
   async (req, res, next) => {
-    try {
-      const { username, password } = req.body;
+    const { username, password } = req.body;
 
-      const newUser = {
-        username,
-        password: bcrypt.hashSync(password, 10), // 2^8 rounds
-      };
+    const newUser = {
+      username,
+      password: bcrypt.hashSync(password, 10),
+    };
 
-      const created = await UsersModel.add(newUser);
+    const created = await UsersModel.add(newUser);
 
+    if (created)
       res
         .status(201)
         .json({ username: created.username, user_id: created.user_id });
-    } catch (err) {
-      next(err);
-    }
+    else next({ message: "could't register user" });
   }
 );
 
@@ -39,9 +36,9 @@ router.post("/login", checkUsernameExists, (req, res, next) => {
   // saves us from two trips to the database
   const userFromDb = req.user;
 
-  const verifies = bcrypt.compareSync(password, userFromDb.password);
+  const verified = bcrypt.compareSync(password, userFromDb.password);
 
-  if (!verifies) return next({ status: 401, message: "Invalid credentials" });
+  if (!verified) return next({ status: 401, message: "Invalid credentials" });
   else {
     req.session.user = userFromDb;
     res.status(200).json({ message: `welcome ${username}!` });
@@ -58,21 +55,4 @@ router.get("/logout", (req, res, next) => {
     : res.status(200).json({ message: "no session" });
 });
 
-/**
-  3 [GET] /api/auth/logout
-
-  response for logged-in users:
-  status 200
-  {
-    "message": "logged out"
-  }
-
-  response for not-logged-in users:
-  status 200
-  {
-    "message": "no session"
-  }
- */
-
-// Don't forget to add the router to the `exports` object so it can be required in other modules
 module.exports = router;
