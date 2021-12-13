@@ -11,7 +11,7 @@ async function find() {
   resolves to an ARRAY with all users that match the filter condition
  */
 async function findBy(filter) {
-  return await db("users").where(filter);
+  return await db("users").where(filter).first();
 }
 
 /**

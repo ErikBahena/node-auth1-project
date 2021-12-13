@@ -43,7 +43,10 @@ async function checkUsernameExists(req, res, next) {
     .first();
 
   if (!foundUser) next({ status: 401, message: "Invalid credentials" });
-  else next();
+  else {
+    req.user = foundUser;
+    next();
+  }
 }
 
 /*

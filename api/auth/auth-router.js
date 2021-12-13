@@ -10,9 +10,6 @@ const {
   checkUsernameFree,
 } = require("./auth-middleware");
 
-// Require `checkUsernameFree`, `checkUsernameExists` and `checkPasswordLength`
-// middleware functions from `auth-middleware.js`. You will need them here!
-
 router.post(
   "/register",
   checkPasswordLength,
@@ -37,44 +34,29 @@ router.post(
   }
 );
 
-/**
-  1 [POST] /api/auth/register { "username": "sue", "password": "1234" }
+router.post("/login", checkUsernameExists, (req, res, next) => {
+  const { username, password } = req.body;
+  // saves us from two trips to the database
+  const userFromDb = req.user;
 
-  response:
-  status 200
-  {
-    "user_id": 2,
-    "username": "sue"
+  const verifies = bcrypt.compareSync(password, userFromDb.password);
+
+  if (!verifies) return next({ status: 401, message: "Invalid credentials" });
+  else {
+    req.session.user = userFromDb;
+    res.status(200).json({ message: `welcome ${username}!` });
   }
+});
 
-  response on username taken:
-  status 422
-  {
-    "message": "Username taken"
-  }
+router.get("/logout", (req, res, next) => {
+  req.session.user
+    ? req.session.destroy((err) => {
+        if (err) return next({ message: "cound't log you out" });
 
-  response on password three chars or less:
-  status 422
-  {
-    "message": "Password must be longer than 3 chars"
-  }
- */
-
-/**
-  2 [POST] /api/auth/login { "username": "sue", "password": "1234" }
-
-  response:
-  status 200
-  {
-    "message": "Welcome sue!"
-  }
-
-  response on invalid credentials:
-  status 401
-  {
-    "message": "Invalid credentials"
-  }
- */
+        res.status(200).json({ message: "logged out" });
+      })
+    : res.status(200).json({ message: "no session" });
+});
 
 /**
   3 [GET] /api/auth/logout
